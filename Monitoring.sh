@@ -27,7 +27,7 @@ check_and_create_tmux_session_gensyn() {
     log "🔍 Проверка gensyn..."
     if ! tmux has-session -t gensyn 2>/dev/null; then
         log "⚠️ Сессия tmux 'gensyn' не найдена. Создаю новую..."
-        tmux new-session -d -s gensyn "cd rl-swarm && ./run_rl_swarm.sh; bash"
+        tmux new-session -d -s gensyn "bash -c 'cd rl-swarm && ./run_rl_swarm.sh; exec bash'"
         log "✅ Сессия 'gensyn' успешно создана и запущена."
     else
         log "✅ Сессия 'gensyn' уже работает."
@@ -38,7 +38,7 @@ check_and_create_tmux_session_nexus() {
     log "🔍 Проверка nexus..."
     if ! tmux has-session -t nexus 2>/dev/null; then
         log "⚠️ Сессия tmux 'nexus' не найдена. Создаю новую..."
-        tmux new-session -d -s nexus "docker stop nexus && docker rm nexus && source /etc/environment && docker run -it --init --name nexus nexusxyz/nexus-cli:latest start --node-id $ID; bash"
+        tmux new-session -d -s nexus bash -c 'bash -c "set -a; . /etc/environment; set +a; docker stop nexus; docker rm nexus; docker run -it --init --name nexus nexusxyz/nexus-cli:latest start --node-id \$ID; exec bash"'
         log "✅ Сессия 'nexus' успешно создана и запущена."
     else
         log "✅ Сессия 'nexus' уже работает."
@@ -49,7 +49,7 @@ check_and_create_tmux_session_datagram() {
     log "🔍 Проверка datagram..."
     if ! tmux has-session -t datagram 2>/dev/null; then
         log "⚠️ Сессия tmux 'datagram' не найдена. Создаю новую..."
-        tmux new-session -d -s datagram "source /etc/environment && ./datagram-cli-x86_64-linux run -- -key $DATAGRAM; bash"
+        tmux new-session -d -s datagram bash -c "set -a; source /etc/environment; set +a; ./datagram-cli-x86_64-linux run -- -key \$DATAGRAM; exec bash"
         log "✅ Сессия 'datagram' успешно создана и запущена."
     else
         log "✅ Сессия 'datagram' уже работает."
@@ -60,7 +60,7 @@ check_and_create_tmux_session_dawn() {
     log "🔍 Проверка dawn..."
     if ! tmux has-session -t dawn 2>/dev/null; then
         log "⚠️ Сессия tmux 'dawn' не найдена. Создаю новую..."
-        tmux new-session -d -s dawn "cd The-Dawn-Bot && python3 -m venv venv && source venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt && python run.py; bash"
+        tmux new-session -d -s dawn bash -c 'bash -c "cd The-Dawn-Bot && python3 -m venv venv && . venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt && python run.py; exec bash"'
         log "✅ Сессия 'dawn' успешно создана и запущена."
     else
         log "✅ Сессия 'dawn' уже работает."
@@ -71,7 +71,7 @@ check_and_create_tmux_session_dria() {
     log "🔍 Проверка dria..."
     if ! tmux has-session -t dria 2>/dev/null; then
         log "⚠️ Сессия tmux 'dria' не найдена. Создаю новую..."
-        tmux new-session -d -s dria "/root/.dria/bin/dkn-compute-launcher start; bash"
+        tmux new-session -d -s dria "bash -c 'source ~/.bashrc; /root/.dria/bin/dkn-compute-launcher start; exec bash'"
         log "✅ Сессия tmux 'dria' успешно создана."
     else
         log "✅ Сессия tmux 'dria' уже работает."
