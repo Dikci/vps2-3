@@ -27,7 +27,7 @@ check_and_create_tmux_session_gensyn() {
     log "🔍 Проверка gensyn..."
     if ! tmux has-session -t gensyn 2>/dev/null; then
         log "⚠️ Сессия tmux 'gensyn' не найдена. Создаю новую..."
-        tmux new-session -d -s gensyn "bash -c 'cd rl-swarm && ./run_rl_swarm.sh; exec bash'"
+        tmux new-session -d -s gensyn "bash -c 'cd rl-swarm && docker compose run --rm -Pit swarm-cpu; exec bash'"
         log "✅ Сессия 'gensyn' успешно создана и запущена."
     else
         log "✅ Сессия 'gensyn' уже работает."
@@ -80,24 +80,28 @@ check_and_create_tmux_session_dria() {
 
 check_multiple_status() {
     log "🔍 Проверка Multiple..."
-    cd ~/multipleforlinux || { log "❌ Ошибка: не удалось перейти в ~/multipleforlinux"; return; }
 
-    local status_output
-    status_output=$(timeout 60s ./multiple-cli status)
+    # Пробуем выполнить status с таймаутом 260 секунд
+    if ! timeout 260s bash -c 'cd ~/multipleforlinux && ./multiple-cli status' >/dev/null 2>&1; then
+        log "❌ multiple-cli не отвечает или не найден. Выполняю переустановку..."
 
-    if [[ $? -eq 124 ]]; then
-        log "❌ Ошибка: multiple-cli status не завершился за 60 сек."
-        return
-    fi
+        rm -f ~/install.sh ~/update.sh ~/start.sh
+        wget -q https://mdeck-download.s3.us-east-1.amazonaws.com/client/linux/install.sh
+        source ./install.sh
+        wget -q https://mdeck-download.s3.us-east-1.amazonaws.com/client/linux/update.sh
+        source ./update.sh
+        cd ~/multipleforlinux
+        wget -q https://mdeck-download.s3.us-east-1.amazonaws.com/client/linux/start.sh
+        source ./start.sh
 
-    if [[ $status_output != *"Node Statistical"* ]]; then
-        log "⚠️ multiple-node не работает. Перезапускаю..."
-        nohup ./multiple-node > output.log 2>&1 &
-        log "✅ multiple-node был успешно запущен."
+        log "✅ Multiple успешно переустановлен и запущен."
     else
-        log "✅ multiple-node работает нормально."
+        log "✅ multiple-cli работает корректно."
     fi
+
+    cd /root
 }
+
 
 check_docker_containers() {
     log "🔍 Проверка Docker-демона..."
@@ -161,29 +165,6 @@ check_services() {
     done <<< "$services"
 }
 
-check_gaianet_node() {
-    log "🔍 Проверка gaianet (порт 8080)..."
-
-    if ! nc -z localhost 8080 >/dev/null 2>&1; then
-        log "⚠️ Сервис gaias на порту 8080 недоступен. Перезапускаю gaianet..."
-
-        log "🔄 Остановка gaianet..."
-        $GAIANET_PATH stop >> "$LOG_FILE" 2>&1 || log "❌ Ошибка при остановке gaianet."
-
-        sleep 2
-
-        log "🔄 Запуск gaianet..."
-        $GAIANET_PATH start >> "$LOG_FILE" 2>&1 || log "❌ Ошибка при запуске gaianet."
-
-        if nc -z localhost 8080 >/dev/null 2>&1; then
-            log "✅ gaianet успешно перезапущен."
-        else
-            log "❌ Ошибка: gaianet не удалось перезапустить."
-        fi
-    else
-        log "✅ Сервис gaias на порту 8080 работает нормально."
-    fi
-}
 
 while true; do
     log "🟢 Начало новой проверки..."
@@ -197,8 +178,7 @@ while true; do
     check_multiple_status
     check_docker_containers
     check_services
-    check_gaianet_node
 
     log "✅ Проверка завершена. Ожидание перед следующей проверкой..."
-    sleep 250
+    sleep 3600
 done
